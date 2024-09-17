@@ -1,162 +1,194 @@
-Commitless
+# Commitless
+
 Automate your Git commit messages using the OpenAI API.
 
 Commitless is a Bash script that generates concise and effective Git commit messages by analyzing your staged changes and leveraging the OpenAI API. It enhances your workflow by automating the commit message creation process while ensuring best practices for security and usability.
 
-Features
-Automated Commit Messages: Generates commit messages based on your staged changes.
-User Interaction: Allows you to review, edit, or cancel the commit message before committing.
-Security Considerations: Includes warnings about sensitive data and validates editors.
-Error Handling: Provides comprehensive error handling for network issues, API errors, and user cancellations.
-Table of Contents
-Installation
-Usage
-Configuration
-Notes
-Contributing
-License
-Disclaimer
-Installation
-Prerequisites
+## Features
+
+- **Automated Commit Messages**: Generates commit messages based on your staged changes.
+- **User Interaction**: Allows you to review, edit, or cancel the commit message before committing.
+- **Security Considerations**: Includes warnings about sensitive data and validates editors.
+- **Error Handling**: Provides comprehensive error handling for network issues, API errors, and user cancellations.
+
+## Table of Contents
+
+- [Installation](#installation)
+- [Usage](#usage)
+- [Configuration](#configuration)
+- [Notes](#notes)
+- [Contributing](#contributing)
+- [License](#license)
+- [Disclaimer](#disclaimer)
+
+## Installation
+
+### Prerequisites
+
 Ensure you have the following tools installed:
 
-Git
+- Git
+- curl
+- jq: You can install jq using your package manager:
 
-curl
+  ```bash
+  # For Debian/Ubuntu
+  sudo apt-get install jq
 
-jq: You can install jq using your package manager:
+  # For macOS using Homebrew
+  brew install jq
+  ```
 
-bash
-Copy code
-# For Debian/Ubuntu
-sudo apt-get install jq
+### Install the Script
 
-# For macOS using Homebrew
-brew install jq
-Install the Script
-Clone the Repository
+1. **Clone the Repository**
 
-bash
-Copy code
-git clone https://github.com/yourusername/commitless.git
-Add the Script to Your Shell Profile
+   ```bash
+   git clone https://github.com/yourusername/commitless.git
+   ```
 
-Copy the gc function from the commitless.sh file and paste it into your shell profile configuration file.
+2. **Add the Script to Your Shell Profile**
 
-For Bash: Add it to ~/.bashrc or ~/.bash_profile.
-For Zsh: Add it to ~/.zshrc.
-bash
-Copy code
-# Open your shell profile in an editor
-nano ~/.bashrc
+   Copy the `gc` function from the `commitless.sh` file and paste it into your shell profile configuration file.
 
-# Paste the gc function at the end of the file
-# [Paste the script here]
+   - For Bash: Add it to `~/.bashrc` or `~/.bash_profile`.
+   - For Zsh: Add it to `~/.zshrc`.
 
-# Save and exit the editor
-Reload Your Shell Profile
+   ```bash
+   # Open your shell profile in an editor
+   nano ~/.bashrc
 
-bash
-Copy code
-source ~/.bashrc
-Usage
-Set Your OpenAI API Key
+   # Paste the gc function at the end of the file
+   # [Paste the script here]
 
-Obtain your OpenAI API key from the OpenAI Dashboard and set it as an environment variable:
+   # Save and exit the editor
+   ```
 
-bash
-Copy code
-export OPENAI_API_KEY='your-api-key-here'
-To make this change permanent, add the export line to your shell profile file.
-Stage Your Changes
+3. **Reload Your Shell Profile**
 
-Use Git to stage the changes you want to commit:
+   ```bash
+   source ~/.bashrc
+   ```
 
-bash
-Copy code
-git add .
-Run the gc Command
+## Usage
 
-bash
-Copy code
-gc
-Follow the Prompts
+1. **Set Your OpenAI API Key**
 
-Review the Diff: Optionally review the diff to ensure no sensitive data is included.
-Generate Commit Message: The script will generate a commit message using the OpenAI API.
-Edit or Confirm: You can edit the commit message, cancel, or proceed with the commit.
-Push Changes: After committing, choose whether to push the changes to the remote repository.
-Configuration
-Set Your Preferred Editor
+   Obtain your OpenAI API key from the OpenAI Dashboard and set it as an environment variable:
+
+   ```bash
+   export OPENAI_API_KEY='your-api-key-here'
+   ```
+
+   To make this change permanent, add the export line to your shell profile file.
+
+2. **Stage Your Changes**
+
+   Use Git to stage the changes you want to commit:
+
+   ```bash
+   git add .
+   ```
+
+3. **Run the gc Command**
+
+   ```bash
+   gc
+   ```
+
+4. **Follow the Prompts**
+
+   - Review the Diff: Optionally review the diff to ensure no sensitive data is included.
+   - Generate Commit Message: The script will generate a commit message using the OpenAI API.
+   - Edit or Confirm: You can edit the commit message, cancel, or proceed with the commit.
+   - Push Changes: After committing, choose whether to push the changes to the remote repository.
+
+## Configuration
+
+### Set Your Preferred Editor
+
 The script allows certain editors for editing the commit message. Allowed editors are:
 
-nano
-vim
-vi
-emacs
-code (Visual Studio Code)
-subl (Sublime Text)
-gedit
+- nano
+- vim
+- vi
+- emacs
+- code (Visual Studio Code)
+- subl (Sublime Text)
+- gedit
+
 Set your preferred editor by exporting the EDITOR environment variable:
 
-bash
-Copy code
+```bash
 export EDITOR='nano'
+```
+
 Add this line to your shell profile to make it permanent.
 
-Exclude Sensitive Files
-Create a .gcignore file in your repository to exclude certain files or patterns from the git diff sent to the OpenAI API.
+### Exclude Sensitive Files
 
-Example .gcignore content:
+Create a `.gcignore` file in your repository to exclude certain files or patterns from the git diff sent to the OpenAI API.
 
-bash
-Copy code
+Example `.gcignore` content:
+
+```
 *.env
 config/secret.json
-Notes
-Data Privacy: The script will send the git diff of your staged changes to the OpenAI API. Ensure that no sensitive information is included in the diff before proceeding.
-OpenAI Usage Policies: By using this script, you agree to comply with OpenAI's API usage policies.
-Rate Limits: Be mindful of the OpenAI API rate limits and usage quotas associated with your account.
-Contributing
+```
+
+## Notes
+
+- **Data Privacy**: The script will send the git diff of your staged changes to the OpenAI API. Ensure that no sensitive information is included in the diff before proceeding.
+- **OpenAI Usage Policies**: By using this script, you agree to comply with OpenAI's API usage policies.
+- **Rate Limits**: Be mindful of the OpenAI API rate limits and usage quotas associated with your account.
+
+## Contributing
+
 Contributions are welcome! Please follow these steps:
 
-Fork the Repository
+1. **Fork the Repository**
 
-Click the "Fork" button at the top right of the repository page.
+   Click the "Fork" button at the top right of the repository page.
 
-Clone Your Fork
+2. **Clone Your Fork**
 
-bash
-Copy code
-git clone https://github.com/yourusername/commitless.git
-Create a New Branch
+   ```bash
+   git clone https://github.com/yourusername/commitless.git
+   ```
 
-bash
-Copy code
-git checkout -b feature/your-feature-name
-Make Your Changes
+3. **Create a New Branch**
 
-Commit and Push
+   ```bash
+   git checkout -b feature/your-feature-name
+   ```
 
-bash
-Copy code
-git add .
-git commit -m "Add your commit message here"
-git push origin feature/your-feature-name
-Submit a Pull Request
+4. **Make Your Changes**
 
-Go to the original repository and click on "New Pull Request".
+5. **Commit and Push**
 
-License
+   ```bash
+   git add .
+   git commit -m "Add your commit message here"
+   git push origin feature/your-feature-name
+   ```
+
+6. **Submit a Pull Request**
+
+   Go to the original repository and click on "New Pull Request".
+
+## License
+
 This project is licensed under the MIT License.
 
-Disclaimer
-Use this script at your own risk. Review the generated commit messages and the data being sent to the API.
-The author is not responsible for any unintended consequences of using this script.
-Ensure compliance with your organization's policies regarding the use of third-party APIs and the handling of sensitive data.
-The gc Function Script
-bash
-Copy code
+## Disclaimer
+
+- Use this script at your own risk. Review the generated commit messages and the data being sent to the API.
+- The author is not responsible for any unintended consequences of using this script.
+- Ensure compliance with your organization's policies regarding the use of third-party APIs and the handling of sensitive data.
+
+## The gc Function Script
+
+```bash
 gc() {
     # Ensure required commands are installed
     for cmd in git curl jq; do
@@ -338,4 +370,6 @@ gc() {
         echo "Changes committed but not pushed."
     fi
 }
+```
+
 Enjoy using Commitless to automate your Git commit messages!
