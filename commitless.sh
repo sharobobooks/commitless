@@ -1,6 +1,3 @@
-### THIS SCRIPT NEEDS TO BE UPDATED TO ACTUALLY MERGE WITH THE API, MUST BE TESTED AN HAVE
-### PROPER ENVIRONMENT VARIABLES ESTABLISHED
-
 # gc - Git Commit Message Generator using OpenAI API
 #
 # This script automates the generation of git commit messages using the OpenAI API.
