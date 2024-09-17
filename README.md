@@ -1,7 +1,3 @@
-
-
-Thought for a couple of seconds
-
 Commitless
 Automate your Git commit messages using the OpenAI API.
 
