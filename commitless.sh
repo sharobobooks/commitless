@@ -67,6 +67,25 @@ gc() {
         return 1  # Editor is not in the allowed list
     }
 
+    # Load exclusion patterns
+    load_exclusions() {
+        EXCLUDE_PATTERNS=()
+        if [[ -f ".gcignore" ]]; then
+            while IFS= read -r line; do
+                EXCLUDE_PATTERNS+=("$line")
+            done < ".gcignore"
+        fi
+    }
+
+    # Get filtered git diff
+    get_filtered_diff() {
+        local exclude_args=()
+        for pattern in "${EXCLUDE_PATTERNS[@]}"; do
+            exclude_args+=(":(exclude)$pattern")
+        done
+        git diff --cached "${exclude_args[@]}"
+    }
+
     # Check if there are staged files
     STAGED_FILES=$(git diff --cached --name-only)
     if [[ -z "$STAGED_FILES" ]]; then
@@ -74,8 +93,11 @@ gc() {
         return 1
     fi
 
-    # Get the diff of staged files
-    GIT_DIFF=$(git diff --cached)
+    # Load exclusions
+    load_exclusions
+
+    # Get the filtered diff of staged files
+    GIT_DIFF=$(get_filtered_diff)
 
     # Limit the size of the git diff
     MAX_DIFF_SIZE=8000
@@ -179,7 +201,7 @@ gc() {
             TEMP_FILE=$(mktemp)
             trap '[[ -n "$TEMP_FILE" ]] && rm -f "$TEMP_FILE"' EXIT
             echo "$COMMIT_MESSAGE" > "$TEMP_FILE"
-            
+
             # Validate and use the editor
             if validate_editor; then
                 "$EDITOR" "$TEMP_FILE"
@@ -188,7 +210,7 @@ gc() {
                 echo "Falling back to vi."
                 vi "$TEMP_FILE"
             fi
-            
+
             COMMIT_MESSAGE=$(cat "$TEMP_FILE")
             if [[ -z "$COMMIT_MESSAGE" ]]; then
                 echo "Commit message cannot be empty. Commit canceled."
@@ -220,5 +242,136 @@ gc() {
         git push
     else
         echo "Changes committed but not pushed."
+    fi
+}
+
+gcs() {
+    # Run the gc function to generate the commit message
+    gc_result=$(gc)
+    if [[ $? -ne 0 ]]; then
+        return 1  # If gc failed, exit
+    fi
+
+    # Extract the commit message from the last commit
+    COMMIT_MESSAGE=$(git log -1 --pretty=%B)
+
+    # Build the prompt for the security analysis
+    SECURITY_PROMPT="Review the following code changes for security vulnerabilities. Provide a structured report with flags and severity rankings for any issues found.\n\nChanges:\n$GIT_DIFF\n\nCommit Message:\n$COMMIT_MESSAGE"
+
+    # Create a JSON payload for the security analysis API request
+    SECURITY_PAYLOAD=$(jq -n \
+        --arg model "gpt-3.5-turbo" \
+        --arg security_prompt "$SECURITY_PROMPT" \
+        '{
+            model: $model,
+            messages: [
+                {"role": "user", "content": $security_prompt}
+            ],
+            max_tokens: 300,
+            temperature: 0.3
+        }'
+    )
+
+    # Call the OpenAI API for security analysis
+    HTTP_STATUS=$(curl -s -o security_response.json -w "%{http_code}" https://api.openai.com/v1/chat/completions \
+        -H 'Content-Type: application/json' \
+        -H "Authorization: Bearer $OPENAI_API_KEY" \
+        -d "$SECURITY_PAYLOAD"
+    )
+    SECURITY_RESPONSE=$(cat security_response.json)
+    rm -f security_response.json
+
+    if [[ "$HTTP_STATUS" -eq 429 ]]; then
+        echo "Error: Rate limit exceeded during security analysis. Please try again later."
+        return 1
+    elif [[ "$HTTP_STATUS" -ge 400 ]]; then
+        echo "Error: Received HTTP status $HTTP_STATUS from OpenAI API during security analysis."
+        return 1
+    fi
+
+    # Check for API errors
+    ERROR_MSG=$(echo "$SECURITY_RESPONSE" | jq -r '.error.message // empty')
+    if [[ -n "$ERROR_MSG" ]]; then
+        echo "Error from OpenAI API during security analysis: $ERROR_MSG"
+        return 1
+    fi
+
+    # Extract the security report
+    SECURITY_REPORT=$(echo "$SECURITY_RESPONSE" | jq -r '.choices[0].message.content')
+    if [[ -z "$SECURITY_REPORT" ]]; then
+        echo "Failed to generate security report."
+        return 1
+    fi
+
+    # Append the security report to the commit message
+    UPDATED_COMMIT_MESSAGE="$COMMIT_MESSAGE
+
+Security Analysis:
+$SECURITY_REPORT"
+
+    # Allow the user to review the updated commit message
+    echo
+    echo "Updated commit message with security analysis:"
+    echo "-------------------------"
+    echo "$UPDATED_COMMIT_MESSAGE"
+    echo "-------------------------"
+    echo
+
+    # Prompt for user confirmation or editing
+    echo "Press 'e' to edit the updated commit message, 'c' to cancel, or any other key to confirm and amend the commit:"
+    read -n 1 USER_INPUT
+    echo
+
+    case "$USER_INPUT" in
+        c)
+            echo "Operation canceled."
+            return 1
+            ;;
+        e)
+            # Open the updated commit message in the default editor
+            TEMP_FILE=$(mktemp)
+            trap '[[ -n "$TEMP_FILE" ]] && rm -f "$TEMP_FILE"' EXIT
+            echo "$UPDATED_COMMIT_MESSAGE" > "$TEMP_FILE"
+
+            # Validate and use the editor
+            if validate_editor; then
+                "$EDITOR" "$TEMP_FILE"
+            else
+                echo "Error: Unauthorized or unset editor. Allowed editors are: ${ALLOWED_EDITORS[*]}"
+                echo "Falling back to vi."
+                vi "$TEMP_FILE"
+            fi
+
+            UPDATED_COMMIT_MESSAGE=$(cat "$TEMP_FILE")
+            if [[ -z "$UPDATED_COMMIT_MESSAGE" ]]; then
+                echo "Commit message cannot be empty. Operation canceled."
+                return 1
+            fi
+            ;;
+    esac
+
+    # Final confirmation before amending the commit
+    echo "Do you want to proceed with this updated commit message? (y/N)"
+    read -n 1 CONFIRM_COMMIT
+    echo
+    if [[ ! $CONFIRM_COMMIT =~ ^[Yy]$ ]]; then
+        echo "Operation canceled."
+        return 1
+    fi
+
+    # Amend the last commit with the updated commit message
+    COMMIT_MSG_FILE=$(mktemp)
+    echo "$UPDATED_COMMIT_MESSAGE" > "$COMMIT_MSG_FILE"
+    git commit --amend -F "$COMMIT_MSG_FILE"
+    rm -f "$COMMIT_MSG_FILE"
+
+    # Prompt before pushing
+    echo "Do you want to push the amended changes? (y/N)"
+    read -n 1 REPLY
+    echo
+    if [[ $REPLY =~ ^[Yy]$ ]]; then
+        git push --force
+    else
+        echo "Amended changes committed but not pushed."
     fi
 }
